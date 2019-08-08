@@ -65,7 +65,7 @@ module "vpc" {
 }
 
 module "sg-bastion" {
-  source = "./modules/sg-bastion"
+  source = "./sg-bastion"
   region = "us-east-2"
   vpc-id = "${module.vpc.vpc_id}"
   ec2-sg-name = "bastion-sg"
