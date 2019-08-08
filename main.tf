@@ -88,3 +88,28 @@ module "sg-bastion" {
   #NOTE: ONLY ALL PORTS WILL BE "" & CIDR BLOCK WILL IN COMMAS ""
 }
 
+module "bastion-server" {
+  source = "./bastion-server"
+
+  vpc-name = "test-vpc"
+  region = "us-east-2"
+  key-name = "bastion-key"
+  ami-id = "ami-02f706d959cedf892"
+  instance-type = "t2.micro"
+  amount = "3"
+  public-key-file-name = "${file("./bastion-server/bastion-key.pub")}"
+
+  instance-name-taq = "bastion-server"
+  associate-public-ip-address = "true"
+
+  vpc-security-group-ids = "${module.sg-bastion.ec2-sg-security-group}"
+  #ec2-subnets-ids = "${module.vpc.public-subnet-ids}"
+  ec2-subnets-ids = "${element(module.vpc.public_subnet, 1)}"
+  #vpc-id = "${module.vpc.vpc-id}"
+
+  #IN CASE OF LAUNCHING EC2 IN SPECIFIC SUBNETS OR PRIVATE SUBNETS, PLEASE UN-COMMENT BELOW"
+  #ec2-subnets-ids = ["${module.cloudelligent-vpc.private-subnet-ids}"]
+  #ec2-subnets-ids = ["","","","","",""]
+  #user-data = "${file("./modules/ec2/httpd.sh")}"
+
+}
