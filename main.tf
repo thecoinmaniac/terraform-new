@@ -64,29 +64,29 @@ module "vpc" {
   }
 }
 
-module "sg-bastion" {
-  source = "./sg-bastion"
-  region = "us-east-2"
-  vpc-id = "${module.vpc.vpc_id}"
-  ec2-sg-name = "bastion-sg"
+# module "sg-bastion" {
+#   source = "./sg-bastion"
+#   region = "us-east-2"
+#   vpc-id = "${module.vpc.vpc_id}"
+#   ec2-sg-name = "bastion-sg"
 
-  ###SECURITY INBOUND GROUP RULES###
-  #RULE-1-INBOUND-RULES
-  rule-1-from-port = 22
-  rule-1-protocol = "tcp"
-  rule-1-to-port = 22
-  rule-1-cidr_blocks = "0.0.0.0/0"
+#   ###SECURITY INBOUND GROUP RULES###
+#   #RULE-1-INBOUND-RULES
+#   rule-1-from-port = 22
+#   rule-1-protocol = "tcp"
+#   rule-1-to-port = 22
+#   rule-1-cidr_blocks = "0.0.0.0/0"
 
 
-  ###SECURITY GROUP OUTBOUND RULES###
-  #RULE-1-OUTBOUND-RULES
-  outbound-rule-1-from-port = 0
-  outbound-rule-1-protocol = "-1"
-  outbound-rule-1-to-port = 0
-  outbound-rule-1-cidr_blocks = "0.0.0.0/0"
+#   ###SECURITY GROUP OUTBOUND RULES###
+#   #RULE-1-OUTBOUND-RULES
+#   outbound-rule-1-from-port = 0
+#   outbound-rule-1-protocol = "-1"
+#   outbound-rule-1-to-port = 0
+#   outbound-rule-1-cidr_blocks = "0.0.0.0/0"
 
-  #NOTE: ONLY ALL PORTS WILL BE "" & CIDR BLOCK WILL IN COMMAS ""
-}
+#   #NOTE: ONLY ALL PORTS WILL BE "" & CIDR BLOCK WILL IN COMMAS ""
+# }
 
 module "bastion-server" {
   source = "./bastion-server"
@@ -96,13 +96,13 @@ module "bastion-server" {
   key-name = "bastion-key"
   ami-id = "ami-02f706d959cedf892"
   instance-type = "t2.micro"
-  amount = "3"
+  amount = "1"
   public-key-file-name = "${file("./bastion-server/bastion-key.pub")}"
 
   instance-name-taq = "bastion-server"
   associate-public-ip-address = "true"
 
-  vpc-security-group-ids = "${module.sg-bastion.ec2-sg-security-group}"
+  vpc-security-group-ids = [aws_security_group.sg-bastion.id]
   ec2-subnets-ids = "${element(module.vpc.public_subnets, 1)}"
 
   #IN CASE OF LAUNCHING EC2 IN SPECIFIC SUBNETS OR PRIVATE SUBNETS, PLEASE UN-COMMENT BELOW"
@@ -125,12 +125,13 @@ resource "aws_security_group" "worker_group_mgmt_one" {
 
     cidr_blocks = [
       "10.0.0.0/8",
+      "0.0.0.0/0,"
     ]
   }
 }
 
-resource "aws_security_group" "worker_group_mgmt_two" {
-  name_prefix = "worker_group_mgmt_two"
+resource "aws_security_group" "sg-bastion" {
+  name_prefix = "sg-bastion"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
@@ -139,7 +140,7 @@ resource "aws_security_group" "worker_group_mgmt_two" {
     protocol  = "tcp"
 
     cidr_blocks = [
-      "192.168.0.0/16",
+      "0.0.0.0/0",
     ]
   }
 }
@@ -155,8 +156,6 @@ resource "aws_security_group" "all_worker_mgmt" {
 
     cidr_blocks = [
       "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
     ]
   }
 }
@@ -181,16 +180,9 @@ module "eks" {
       name                          = "worker-group-1"
       instance_type                 = "t2.micro"
       additional_userdata           = "echo foo bar"
-      asg_desired_capacity          = 2
+      asg_desired_capacity          = 3
       additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id]
-    },
-    {
-      name                          = "worker-group-2"
-      instance_type                 = "t2.micro"
-      additional_userdata           = "echo foo bar"
-      additional_security_group_ids = [aws_security_group.worker_group_mgmt_two.id]
-      asg_desired_capacity          = 1
-    },
+    }
   ]
 
   worker_additional_security_group_ids = [aws_security_group.all_worker_mgmt.id]
