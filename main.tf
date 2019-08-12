@@ -241,6 +241,20 @@ data "aws_ami" "amazon_linux" {
 #   egress_rules        = ["all-all"]
 # }
 
+resource "aws_security_group" "kafka-ec2" {
+  name_prefix = "kafka-ec2"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+
+    cidr_blocks = [
+      "10.0.0.0/16",  
+    ]
+  }
+}
 
 module "kafka" {
   source = "terraform-aws-modules/ec2-instance/aws"
@@ -252,6 +266,6 @@ module "kafka" {
   key_name      = "ec2-key"
   instance_type = "t2.micro"
   subnet_ids    = module.vpc.private_subnets
-  vpc_security_group_ids      = [aws_security_group.all_worker_mgmt.id]
+  vpc_security_group_ids      = [aws_security_group.kafka-ec2.id]
   associate_public_ip_address = true
 }
