@@ -200,3 +200,58 @@ module "eks" {
 }
 
 
+##########################################
+data "aws_subnet_ids" "all" {
+  vpc_id = module.vpc.vpc_id
+}
+
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+
+  owners = ["amazon"]
+
+  filter {
+    name = "name"
+
+    values = [
+      "amzn-ami-hvm-*-x86_64-gp2",
+    ]
+  }
+
+  filter {
+    name = "owner-alias"
+
+    values = [
+      "amazon",
+    ]
+  }
+}
+
+
+module "security_group" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 3.0"
+
+  name        = "SSH only"
+  description = "Security group for SSH usage with EC2 instance"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress_cidr_blocks = ["10.0.0.0/16"]
+  ingress_rules       = ["ssh-22-tcp", "all-icmp"]
+  egress_rules        = ["all-all"]
+}
+
+
+module "kafka" {
+  source = "../../"
+
+  instance_count = 4
+
+  name          = "example-t2-unlimited"
+  ami           = data.aws_ami.amazon_linux.id
+  key_name      = "ec2-key"
+  instance_type = "t2.micro"
+  subnet_ids    = module.vpc.private_subnets
+  vpc_security_group_ids      = [module.security_group.this_security_group_id]
+  associate_public_ip_address = true
+}
