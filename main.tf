@@ -243,7 +243,7 @@ module "security_group" {
 
 
 module "kafka" {
-  source = "../../"
+  source = "terraform-aws-modules/ec2-instance/aws"
 
   instance_count = 4
 
